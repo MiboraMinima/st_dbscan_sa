@@ -12,7 +12,6 @@ df_clean <- read.csv("data/out/traces_groupe1_clean.csv")
 
 # Convert id trace to factor
 df_clean$id_trace <- as_factor(df_clean$id_trace)
-df_clean$time <- as_datetime(df_clean$time)
 
 # ==============================================================================
 # Sensibility analysis
