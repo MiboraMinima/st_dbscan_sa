@@ -4,7 +4,7 @@ library(happign)
 library(sf)
 library(reshape)
 
-source("scripts/fun.r")
+source("scripts/assets/fun.r")
 
 # ==============================================================================
 # Import data
@@ -87,7 +87,7 @@ summarytools::descr(unlist(th_list))
 # Merge all df
 df_clean <- reshape::merge_all(clean_track)
 
-# Show how many pings has been removed
+# Show how many pings have been removed
 n_rem <- nrow(train_clean) - nrow(df_clean)
 pct_rem <- (n_rem / nrow(df_clean)) * 100
 sprintf(

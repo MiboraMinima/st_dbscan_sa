@@ -3,7 +3,7 @@ library(summarytools)
 library(reshape)
 library(foreach)
 
-source("scripts/stdbscan.r")
+source("scripts/assets/stdbscan.r")
 
 # ==============================================================================
 # Import data
@@ -83,7 +83,7 @@ parallel::stopCluster(cl = my_cluster)
 df_store$f_measure <- out[, 1]
 
 # ==============================================================================
-# Quick result analysis
+# Checkout the results
 # ==============================================================================
 summarytools::descr(df_store$f_measure)
 
