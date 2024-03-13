@@ -4,6 +4,7 @@ library(reshape)
 library(foreach)
 
 source("scripts/assets/stdbscan.r")
+source("scripts/assets/fun.r")
 
 # ==============================================================================
 # Import data
