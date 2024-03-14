@@ -82,6 +82,8 @@ parallel::stopCluster(cl = my_cluster)
 # Append result
 df_store$f_measure <- out[, 1]
 
+write.csv(df_store, "data/out/params_fmeasures.csv")
+
 # ==============================================================================
 # Checkout the results
 # ==============================================================================
