@@ -54,6 +54,7 @@ out <- foreach(
   # syntax ; it's the foreach loop)
   if (length(lon) <= 1) (return(0))
   lat <- df_clean[df_clean$id_trace == id, "lat"]
+  time <- to_num(as_datetime(df_clean[df_clean$id_trace == id, "time"]))
 
   # running st-dbscan
   res <- stdbscan(lon, lat, time, eps, eps2, minpts)
