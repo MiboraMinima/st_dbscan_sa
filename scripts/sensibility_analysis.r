@@ -46,14 +46,14 @@ out <- foreach(
   eps <- df_store[i, "eps"]
   eps2 <- df_store[i, "eps2"]
   minpts <- df_store[i, "minpts"]
+  id <- df_store[i, "id"]
 
   # Get the parameters of the track.
-  lon <- df_clean[df_clean$id_trace == df_store[i, "id"], "lon"]
+  lon <- df_clean[df_clean$id_trace == id, "lon"]
   # Check if the track is empty, if so, next track and return 0 (I know, weird
   # syntax ; it's the foreach loop)
   if (length(lon) <= 1) (return(0))
-  lat <- df_clean[df_clean$id_trace == df_store[i, "id"], "lat"]
-  time <- as_datetime(df_clean[df_clean$id_trace == df_store[i, "id"], "time"])
+  lat <- df_clean[df_clean$id_trace == id, "lat"]
 
   # running st-dbscan
   res <- stdbscan(lon, lat, time, eps, eps2, minpts)
