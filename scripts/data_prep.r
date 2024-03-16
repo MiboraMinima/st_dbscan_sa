@@ -5,6 +5,7 @@ library(sf)
 library(reshape)
 library(maptiles)
 library(ggspatial)
+library(patchwork)
 
 source("scripts/assets/fun.r")
 
@@ -13,12 +14,6 @@ source("scripts/assets/fun.r")
 # ==============================================================================
 train_sf <- read.csv("data/in/all/traces_groupe1.csv", sep = ";") %>%
   st_as_sf(coords = c("lon", "lat"), crs = 2154)
-
-# # Loading Rennes com to filter outliers
-# data("cog_2023")
-# insee_code <- cog_2023[cog_2023$LIBELLE == "Rennes", "COM"]
-# com <- get_apicarto_cadastre(insee_code, type = "commune")
-# com <- st_transform(com, 2154)
 
 # ==============================================================================
 # Exploring data
@@ -29,7 +24,7 @@ bretagne <- subset(region, NOM_M == 'BRETAGNE')
 #one plot with all tracks
 ggplot() +
   geom_sf(data = bretagne, color = "black", fill = NA) +
-  geom_sf(data = train_sf, color = "red")
+  geom_sf(data = train_sf, color = "purple", shape=3)
   ###there are tracks in Rennes, one in Vezin-le-coquet, one in Concarneau
 
 #one plot by track
@@ -44,39 +39,22 @@ ggplot() +
   }
 
   ##plots
-  lapply(filtered_datasets, function(train_sf) {
+plots <- lapply(filtered_datasets, function(train_sf) {
     ggplot(train_sf) +
-      geom_sf(color = "red") +
-      facet_wrap(~ id_trace)
+      geom_sf(color = "purple", shape=3) +
+      facet_wrap(~ id_trace) +
+      theme_classic()
   })
 
+plot_layout(wrap_plots(plots) +
+              plot_annotation(title = "GPS tracks",
+                              caption = "Group 1",
+                              theme = theme(plot.title = element_text(size = 16, hjust = 0.5, vjust = 0.5, face = "bold"),
+                                            plot.caption = element_text(size = 8, hjust = 1, face = "italic"))))
+  
 # ==============================================================================
 # Handle outliers
 # ==============================================================================
-
-  
-# Outliers: Concarneau
-# ------------------------------------------------------------------------------
-
-# Get only pings in Rennes
-#train_sf$inter <- st_intersects(train_sf, com, sparse = FALSE)
-
-# Checkout
-# train_sf %>%
-#   filter(inter == "TRUE") %>%
-#   ggplot() +
-#   geom_sf()
-
-# Filter
-# train_clean <- train_sf %>%
-#   mutate(
-#     lon = st_coordinates(geometry)[, 1],
-#     lat = st_coordinates(geometry)[, 2]
-#   ) %>%
-#   filter(inter == "TRUE") %>%
-#   as_tibble() %>%
-#   select(-c(inter, geometry))
-
 # ------------------------------------------------------------------------------
 # Outliers identification using median filter
 # ------------------------------------------------------------------------------
@@ -94,19 +72,22 @@ train_sf[, "dmed"] <- median_filter(
 )
 
 #Distribution & statistics
-summary(train_sf$dmed)
+
+summary(train_sf$dmed) #dmed min = 0, dmed max = 106.6
 range <- range(train_sf$dmed)
-nrow(train_sf)
+
+length(unique(train_sf$id_trace))
+nrow(train_sf) #11595 points for 12 tracks in the dataset
 
   ##full histogram
   hist(train_sf$dmed, breaks=50, xlab ="dmed", main ="Distribution of dmed", xlim= range(train_sf$dmed))
+  #most dmed are between 0 and 2
   
-  ##truncated histograms
+  ##truncated histograms (zoomed histograms on shorter dmed values)
   hist(train_sf$dmed, breaks=50, xlab ="dmed", main ="Distribution of dmed (max freq=150)", xlim= range(train_sf$dmed), ylim=c(0,150))
   hist(train_sf$dmed, breaks=50, xlab ="dmed", main ="Distribution of dmed (max freq=150)", xlim= c(0,60), ylim=c(0,150))
   
   ### those histograms can help choose a threshold for defining outlier. 
-  ### it seems there a break at dmed = 12
             
 #Plots
 
@@ -120,17 +101,25 @@ nrow(train_sf)
     filtered_datasets[[as.character(track)]] <- subset(train_sf, id_trace == track)
   }
 
-lapply(filtered_datasets, function(train_sf) {
+plots <- lapply(filtered_datasets, function(train_sf) {
   ggplot(train_sf) +
-    geom_sf(color = "red", shape=4) +
-    geom_point(data = train_sf, aes(x = xmed, y = ymed), color = "blue") +
-    facet_wrap(~ id_trace)
+    geom_sf(color = "purple", shape=3) +
+    geom_point(data = train_sf, aes(x = xmed, y = ymed), color = "green4", shape = 1) +
+    facet_wrap(~ id_trace) +
+    theme_classic() +
+    annotation_scale(location = "br", height = unit(0.10, "cm"))+
+    theme(legend.position = "none", axis.title = element_blank())
 })
 
-# Find a threshold for each track. Using percentile. !!Arbitrary 95e pct!!
+plot_layout(wrap_plots(plots) +
+              plot_annotation(title = "GPS tracks (purple) and Medians (green)",
+                              caption = "Group 1",
+                              theme = theme(plot.title = element_text(size = 16, hjust = 0.5, vjust = 0.5, face = "bold"),
+                                            plot.caption = element_text(size = 8, hjust = 1, face = "italic"),
+                                            legend.position = "bottom")))
 
-#METHODE SEUIL FIXE
-threshold <- 12
+# Find a threshold 
+threshold <- 2 #chosen according to the histograms shown above
 
 clean_track <- list() #we store only points that are inside the fixed thresholds
 outliers <- list() #points considered as outliers
@@ -149,38 +138,42 @@ for (i in seq_along(unique_tracks)) {
 df_clean <- do.call(rbind, clean_track)
 df_outliers <- do.call(rbind, outliers)
 
-#Plot - A FAIRE
-train_sf$is_outlier <- apply(st_intersects(train_sf, df_outliers), 1, function(x) any(x))
+  ##mark points that are outliers
+  train_sf$is_outlier <- apply(st_intersects(train_sf, df_outliers), 1, function(x) any(x))
 
-ggplot(train_sf) +
-  geom_sf(color = "green4", shape=8) +
-  geom_point(data = train_sf, aes(x = xmed, y = ymed), color = "blue4", shape = 19) +
-  geom_point(data = train_sf[train_sf$is_outlier == TRUE,], aes(x = xmed, y = ymed), color = "red4")
+  
+  ##plot outliers
+  outlier <- unique(train_sf[train_sf$is_outlier == TRUE,])
+  unique_tracks <- unique(outlier$id_trace)
+  filtered_outlier <- list()
+  
+  for (track in unique_tracks) {
+    filtered_outlier[[as.character(track)]] <- subset(outlier, id_trace == track)
+  }
+  
+  plots <- lapply(filtered_outlier, function(outlier) {
+    ggplot(outlier) +
+      geom_sf(data = outlier, color = "red", shape =19) +
+      facet_wrap(~ id_trace) +
+      theme_classic() +
+      annotation_scale(location = "br", height = unit(0.10, "cm")) +
+      theme(legend.position = "none", axis.title = element_blank())
+  })
 
-
-# je ne sais pas pourquoi je n'arrive pas à rendre visible les outliers ici :
-outlier <- train_sf[train_sf$is_outlier == TRUE,]
-unique(outlier$id_trace)
-
-lapply(filtered_datasets, function(train_sf) {
-  ggplot(train_sf) +
-    geom_sf(color = "green4", shape=8) +
-    geom_point(data = train_sf, aes(x = xmed, y = ymed), color = "blue4", shape = 19) +
-    if (any(train_sf$is_outlier)) {
-      geom_point(data = train_sf[train_sf$is_outlier, ], aes(x = xmed, y = ymed), color = "red4")
-    } else {
-      NULL
-    } +
-    facet_wrap(~ id_trace)
-})
-
-
+  plot_layout(wrap_plots(plots, widths = rep(1, length(plots)), heights = rep(1, length(plots))) +
+                plot_annotation(title = "Outliers",
+                                caption = "Group 1",
+                                theme = theme(plot.title = element_text(size = 16, hjust = 0.5, vjust = 0.5, face = "bold"),
+                                              plot.caption = element_text(size = 8, hjust = 1, face = "italic"),
+                                              legend.position = "bottom")))
+  
 # Show how many pings have been removed
-n_rem <- nrow(train_sf) - nrow(df_clean)
-pct_rem <- (n_rem / nrow(df_clean)) * 100
+n_rem <- nrow(outlier)
+pct_rem <- (n_rem / nrow(train_sf)) * 100
 sprintf(
   "%s (%s%% of total) pings removed using 12 as threshold for each track",
   n_rem, round(pct_rem,2)
 )
 
 write.csv(df_clean, "data/out/traces_groupe1_clean.csv")
+
