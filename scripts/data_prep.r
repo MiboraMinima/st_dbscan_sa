@@ -199,5 +199,5 @@ sprintf(
   ((nrow(df_clean) - nrow(d_rem)) / nrow(df_clean)) * 100
 )
 
-write.csv(df_clean, "data/out/traces_groupe1_clean.csv")
-
+# write data
+write.csv(d_rem, "data/out/traces_groupe1_clean.csv")
