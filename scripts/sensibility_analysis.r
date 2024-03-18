@@ -19,9 +19,9 @@ df_clean$id_trace <- as_factor(df_clean$id_trace)
 # ==============================================================================
 # Generate parameters (not that much)
 df_store <- expand.grid(
-  minpts = seq(5, 30, 5),
-  eps    = seq(1, 5, 0.75),
-  eps2   = seq(30, 180, 30),
+  minpts = seq(5, 60, 5),
+  eps    = seq(1, 15, 0.75),
+  eps2   = seq(30, 1000, 200),
   id     = unique(df_clean$id)
 )
 
@@ -47,7 +47,7 @@ out <- foreach(
   eps2 <- df_store[i, "eps2"]
   minpts <- df_store[i, "minpts"]
   id <- df_store[i, "id"]
-
+  
   # Get the parameters of the track.
   lon <- df_clean[df_clean$id_trace == id, "lon"]
   # Check if the track is empty, if so, next track and return 0 (I know, weird
@@ -55,16 +55,16 @@ out <- foreach(
   if (length(lon) <= 1) (return(0))
   lat <- df_clean[df_clean$id_trace == id, "lat"]
   time <- to_num(as_datetime(df_clean[df_clean$id_trace == id, "time"]))
-
+  
   # running st-dbscan
   res <- stdbscan(lon, lat, time, eps, eps2, minpts)
-
+  
   # Add result to df
   df_comp <- df_clean %>%
     filter(id_trace == df_store[i, "id"]) %>%
     select(arret) %>%
     mutate(res = res$cluster)
-
+  
   # Compute vp, vn, fpn and fn
   fdf <- df_comp %>%
     mutate(type_error = case_when(
@@ -73,12 +73,12 @@ out <- foreach(
       arret == "VRAI" & res == 0 ~ "fp",
       arret == "FAUX" & res != 0 ~ "fn"
     ))
-
+  
   # Compute number of vp, fp and fn
   vp <- length(fdf[fdf["type_error"] == "vp"])
   fp <- length(fdf[fdf["type_error"] == "fp"])
   fn <- length(fdf[fdf["type_error"] == "fn"])
-
+  
   # compute f-measure
   f_measure(vp, fp, fn)
 }
@@ -101,8 +101,11 @@ df_store %>%
   head()
 
 # Show best params (mean)
-df_store %>%
+df_store2 <- df_store %>%
   group_by(minpts, eps, eps2) %>%
-  summarize(mean_f = mean(f_measure)) %>%
-  arrange(desc(mean_f)) %>%
-  head()
+  summarize(mean_f = mean(f_measure), med_f = median(f_measure), sd_f = sd(f_measure), min_f = min(f_measure)) %>%
+  arrange(desc(mean_f))
+
+ggplot(df_store2, aes(x=as.factor(minpts), y = mean_f))+
+  geom_boxplot()
+
