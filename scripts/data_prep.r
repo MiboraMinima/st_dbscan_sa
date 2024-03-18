@@ -175,5 +175,29 @@ sprintf(
   n_rem, round(pct_rem,2)
 )
 
+# ==============================================================================
+# Clean time
+# ==============================================================================
+# NOTE: We floor millisecond to last second to remove unwanted data such as:
+# [1] "2024-03-06 09:36:07.999000+00:00" [2] "2024-03-06 09:36:07+00:00"
+# The GPS record at t0 a time superior to the one of t+1. So, we (1) floor to
+# last seconds then (2) we removes duplicates.
+
+df_clean$time <- floor_date(as_datetime(df_clean$time), unit = "second")
+
+# Remove duplicated based on time for each track
+d_rem <- df_clean %>%
+  group_by(id_trace) %>%
+  group_modify(~ {
+    .x %>%
+      distinct(.x$time, .keep_all = TRUE)
+  })
+
+sprintf(
+  "Removing %s duplicates data based on time (%.2f %% of the sample)",
+  nrow(df_clean) - nrow(d_rem),
+  ((nrow(df_clean) - nrow(d_rem)) / nrow(df_clean)) * 100
+)
+
 write.csv(df_clean, "data/out/traces_groupe1_clean.csv")
 
