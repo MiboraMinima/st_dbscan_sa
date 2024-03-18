@@ -80,13 +80,13 @@ length(unique(train_sf$id_trace))
 nrow(train_sf) #11595 points for 12 tracks in the dataset
 
   ##full histogram
-  hist(train_sf$dmed, breaks=50, xlab ="dmed", main ="Distribution of dmed", xlim= range(train_sf$dmed))
+  hist(train_sf$dmed, breaks=100, xlab ="dmed", main ="Distribution of dmed", xlim= range(train_sf$dmed))
   #most dmed are between 0 and 2
   
   ##truncated histograms (zoomed histograms on shorter dmed values)
-  hist(train_sf$dmed, breaks=50, xlab ="dmed", main ="Distribution of dmed (max freq=150)", xlim= range(train_sf$dmed), ylim=c(0,150))
-  hist(train_sf$dmed, breaks=50, xlab ="dmed", main ="Distribution of dmed (max freq=150)", xlim= c(0,60), ylim=c(0,150))
-  
+  hist(train_sf$dmed, breaks=100, xlab ="dmed", main ="Distribution of dmed (max freq=150)", xlim= range(train_sf$dmed), ylim=c(0,150))
+  hist(train_sf$dmed, breaks=100, xlab ="dmed", main ="Distribution of dmed (max freq=150)", xlim= c(0,60), ylim=c(0,150))
+  hist(train_sf$dmed, breaks=100, xlab ="dmed", main ="Distribution of dmed (max freq=150)", xlim= c(0,40), ylim=c(0,150))
   ### those histograms can help choose a threshold for defining outlier. 
             
 #Plots
@@ -119,7 +119,7 @@ plot_layout(wrap_plots(plots) +
                                             legend.position = "bottom")))
 
 # Find a threshold 
-threshold <- 2 #chosen according to the histograms shown above
+threshold <- 12
 
 clean_track <- list() #we store only points that are inside the fixed thresholds
 outliers <- list() #points considered as outliers
